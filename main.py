@@ -28,7 +28,7 @@ with topcol1:
     # Smaller gap between logo and title by adjusting column ratios
     logo_col, title_col = st.columns([1, 6])
     with logo_col:
-        st.image("kenai_logo1.png", width=150)  # Increased from 60 to 80
+        st.image("kenai_logo1.PNG", width=150)  # Increased from 60 to 80
     with title_col:
         st.markdown("<h1 style='margin-bottom: 0; padding-top: 2px;'> Finance Chatbot</h1>", unsafe_allow_html=True)
  
