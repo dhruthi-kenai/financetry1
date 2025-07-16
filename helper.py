@@ -197,8 +197,6 @@ Instructions:
 - In the final *output*, treat `payment_status` and `payment_received` both as `payment_status` with values 'Paid'/'Unpaid'.
 - But do not rename these fields in the actual SQL query — use the original column names.
  
- 
- 
 Query: {user_query}
 Answer:
 """
@@ -212,7 +210,12 @@ Answer:
             return result_df
         elif result_df.empty:
             return "No data found."
+       
+        # ✅ Return DataFrame directly if user explicitly asked for table
+        if "table" in user_query.lower() or "tabular" in user_query.lower():
+            return result_df
  
+        # 🧾 Otherwise summarize it
         table_text = result_df.to_markdown(index=False)
         summary_prompt = f"""You are a finance assistant. Convert the following SQL result into a clear, human-readable summary.
  
@@ -228,4 +231,5 @@ Answer:"""
         return call_llm(doc_prompt)
  
     else:
-        return f"{decision}"
+        return decision
+ 
