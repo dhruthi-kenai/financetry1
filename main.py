@@ -3,7 +3,7 @@ import pandas as pd
 from helper import route_query, fetch_txt_files_from_sharepoint, embeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import os
+
  
 # 📦 Page setup
 st.set_page_config(page_title="💰 Finance Chatbot", layout="wide")
