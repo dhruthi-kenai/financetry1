@@ -123,11 +123,18 @@ def run_sql_query(query):
  
 # 🧭 Route Query
 def route_query(user_query):
-    router_prompt = f"""You are a finance data assistant. Convert the following SQL result into a clear, human-readable summary.
-Avoid using markdown headers like ### or **bold**.
- 
-Use only the following MySQL tables and their columns. Always refer to them exactly as named. Never guess table or column names.
- 
+    router_prompt = f"""You are a finance data assistant. Your job is to first determine whether the user's query requires SQL or documentation lookup. 
+
+If the query is about structured finance data (e.g. invoices, vendors, payments, balances, general ledger), you must:
+- Return only a valid SQL query.
+- Do not summarize, explain, or provide any fabricated values.
+- Do not make up vendor names, amounts, cities, or due dates.
+- Do not output any natural language — only SQL.
+
+If the query is about policy, process, accounting rules, or how-to (like 'how to reverse a journal entry'), respond only with: DOCUMENT
+
+Never guess table or column names. Use only the schema below.
+
 ---
 Table: ap_invoices (Accounts Payable)
 Columns:
@@ -137,7 +144,7 @@ Columns:
 - amount (DECIMAL)
 - payment_status (VARCHAR: 'Paid' or 'Unpaid')
 - due_date (DATE)
- 
+
 ---
 Table: ar_invoices (Accounts Receivable)
 Columns:
@@ -147,7 +154,7 @@ Columns:
 - amount (DECIMAL)
 - payment_received (BOOLEAN)
 - due_date (DATE)
- 
+
 ---
 Table: vendors
 Columns:
@@ -155,7 +162,7 @@ Columns:
 - vendor_name (VARCHAR)
 - contact_email (VARCHAR)
 - city (VARCHAR)
- 
+
 ---
 Table: customers
 Columns:
@@ -163,7 +170,7 @@ Columns:
 - customer_name (VARCHAR)
 - contact_email (VARCHAR)
 - city (VARCHAR)
- 
+
 ---
 Table: payments
 Columns:
@@ -173,7 +180,7 @@ Columns:
 - amount (DECIMAL)
 - payment_method (VARCHAR)
 - direction (ENUM: 'AP' or 'AR')
- 
+
 ---
 Table: general_ledger
 Columns:
@@ -183,53 +190,53 @@ Columns:
 - debit (DECIMAL)
 - credit (DECIMAL)
 - description (TEXT)
- 
+
 ---
 Instructions:
-- If the query is about structured finance data (e.g. invoices, payments, balances), return only a SQL query without explanation.
-- If the query is about policy, process, accounting rules, or how-to (like 'how to reverse a journal entry'), respond only with: DOCUMENT
-- Always use the correct table and column names.
-- Never invent a table or column.
--If the user asks for all invoices or a summary of invoices, return a SQL query that combines both `ap_invoices` and `ar_invoices` using a `UNION ALL`. Make sure the column names match exactly, and add a column called `invoice_type` with values 'AP' or 'AR'.
- 
- For consistency:
-- In the final *output* (not the SQL), treat `vendor_id` and `customer_id` as a common `entity_id`.
-- In the final *output*, treat `payment_status` and `payment_received` both as `payment_status` with values 'Paid'/'Unpaid'.
-- But do not rename these fields in the actual SQL query — use the original column names.
- 
+- If the query is about structured finance data, return only a SQL query without explanation.
+- If the query is about policy, process, accounting rules, or how-to, respond only with: DOCUMENT
+- Always use the correct table and column names. Never invent a table or column.
+- If the user asks for all invoices or a summary of invoices, return a SQL query that combines both `ap_invoices` and `ar_invoices` using a `UNION ALL`. Make sure the column names match exactly, and add a column called `invoice_type` with values 'AP' or 'AR'.
+
+Important:
+- Do NOT provide any sample output.
+- Do NOT write any human-readable summaries.
+- Do NOT fabricate invoice data, vendors, customers, or totals.
+- Your response must be either:
+    a) A valid SQL query that can be run directly,
+    b) Or the word: DOCUMENT
+
 Query: {user_query}
 Answer:
 """
- 
+
     decision = call_llm(router_prompt).strip()
- 
-    if "SELECT" in decision.upper():
+
+    if decision.strip().upper().startswith("SELECT"):
         cleaned_query = decision.replace("```sql", "").replace("```", "").strip()
         result_df = run_sql_query(cleaned_query)
+
         if isinstance(result_df, str):
             return result_df
         elif result_df.empty:
             return "No data found."
-       
-        # ✅ Return DataFrame directly if user explicitly asked for table
+
         if "table" in user_query.lower() or "tabular" in user_query.lower():
             return result_df
- 
-        # 🧾 Otherwise summarize it
+
         table_text = result_df.to_markdown(index=False)
         summary_prompt = f"""You are a finance assistant. Convert the following SQL result into a clear, human-readable summary.
- 
+
 SQL Output:
 {table_text}
- 
+
 Answer:"""
         return call_llm(summary_prompt)
- 
+
     elif decision.upper().startswith("DOCUMENT"):
         context = get_context_from_docs(user_query)
         doc_prompt = f"Answer this user query based on the context below.\n\nContext:\n{context}\n\nQuestion: {user_query}"
         return call_llm(doc_prompt)
- 
+
     else:
-        return decision
- 
+        return "⚠️ The assistant returned an unsupported response. Please rephrase your query or try again."
