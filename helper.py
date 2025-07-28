@@ -123,21 +123,20 @@ def run_sql_query(query):
  
 # 🧭 Route Query
 def route_query(user_query):
-    router_prompt = f"""You are a finance data assistant. Your job is to first determine whether the user's query requires SQL or documentation lookup. 
+    router_prompt = f"""
+You are a finance SQL assistant. Given a user query, respond in **one of two exact formats only**:
 
-If the query is about structured finance data (e.g. invoices, vendors, payments, balances, general ledger), you must:
-- Return only a valid SQL query.
-- Do not summarize, explain, or provide any fabricated values.
-- Do not make up vendor names, amounts, cities, or due dates.
-- Do not output any natural language — only SQL.
+1. If the query is about structured data (e.g., invoices, vendors, payments, balances, general ledger), return only a valid MySQL query using the schema below. Do not explain. Do not include any sample data or fabricated answers.
 
-If the query is about policy, process, accounting rules, or how-to (like 'how to reverse a journal entry'), respond only with: DOCUMENT
+2. If the query is about finance policy, process, accounting rules, or how-to, respond only with the exact word: DOCUMENT
 
-Never guess table or column names. Use only the schema below.
+Respond strictly in one of those two formats. Never say anything else. Never generate examples or explanations. Never guess values or column names. Stick to only the schema below.
 
 ---
-Table: ap_invoices (Accounts Payable)
-Columns:
+
+Schema:
+
+Table: ap_invoices
 - invoice_id (INT)
 - vendor_id (INT)
 - invoice_date (DATE)
@@ -145,9 +144,7 @@ Columns:
 - payment_status (VARCHAR: 'Paid' or 'Unpaid')
 - due_date (DATE)
 
----
-Table: ar_invoices (Accounts Receivable)
-Columns:
+Table: ar_invoices
 - invoice_id (INT)
 - customer_id (INT)
 - invoice_date (DATE)
@@ -155,25 +152,19 @@ Columns:
 - payment_received (BOOLEAN)
 - due_date (DATE)
 
----
 Table: vendors
-Columns:
 - vendor_id (INT)
 - vendor_name (VARCHAR)
 - contact_email (VARCHAR)
 - city (VARCHAR)
 
----
 Table: customers
-Columns:
 - customer_id (INT)
 - customer_name (VARCHAR)
 - contact_email (VARCHAR)
 - city (VARCHAR)
 
----
 Table: payments
-Columns:
 - payment_id (INT)
 - invoice_id (INT)
 - payment_date (DATE)
@@ -181,9 +172,7 @@ Columns:
 - payment_method (VARCHAR)
 - direction (ENUM: 'AP' or 'AR')
 
----
 Table: general_ledger
-Columns:
 - entry_id (INT)
 - entry_date (DATE)
 - account_code (VARCHAR)
@@ -191,24 +180,18 @@ Columns:
 - credit (DECIMAL)
 - description (TEXT)
 
----
-Instructions:
-- If the query is about structured finance data, return only a SQL query without explanation.
-- If the query is about policy, process, accounting rules, or how-to, respond only with: DOCUMENT
-- Always use the correct table and column names. Never invent a table or column.
-- If the user asks for all invoices or a summary of invoices, return a SQL query that combines both `ap_invoices` and `ar_invoices` using a `UNION ALL`. Make sure the column names match exactly, and add a column called `invoice_type` with values 'AP' or 'AR'.
+Special Instruction:
+If the query is about "all invoices" or "summary of invoices", return a UNION ALL query that includes both `ap_invoices` and `ar_invoices`, using a column `invoice_type` with values 'AP' and 'AR'. Match columns exactly.
 
-Important:
-- Do NOT provide any sample output.
-- Do NOT write any human-readable summaries.
-- Do NOT fabricate invoice data, vendors, customers, or totals.
-- Your response must be either:
-    a) A valid SQL query that can be run directly,
-    b) Or the word: DOCUMENT
+Only valid outputs:
+- A MySQL query starting with SELECT
+- The word: DOCUMENT
 
-Query: {user_query}
+User query: {user_query}
+
 Answer:
 """
+
 
     decision = call_llm(router_prompt).strip()
 
