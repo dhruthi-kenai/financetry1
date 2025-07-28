@@ -112,7 +112,11 @@ def run_sql_query(query):
             port=int(st.secrets.get("DB_PORT", 3306))
         )
         cursor = conn.cursor()
-        cursor.execute(query)
+
+        # Strip triple backticks and markdown if present
+        cleaned_query = query.strip().removeprefix("```sql").removeprefix("```").removesuffix("```").strip()
+        cursor.execute(cleaned_query)
+
         rows = cursor.fetchall()
         columns = [col[0] for col in cursor.description]
         cursor.close()
@@ -120,6 +124,7 @@ def run_sql_query(query):
         return pd.DataFrame(rows, columns=columns) if rows else pd.DataFrame()
     except Exception as e:
         return f"SQL Error: {str(e)}"
+
  
 # 🧭 Route Query
 def route_query(user_query):
