@@ -164,6 +164,9 @@ Instructions:
 - Do not explain your decision.
 - If user asks for all invoices or invoice summary, use UNION ALL with invoice_type.
 - Do not use triple backticks or markdown — return only raw SQL if applicable.
+- To calculate the number of days between two dates, always use the MySQL function: DATEDIFF(date1, date2)
+- Never use julianday(), TIMESTAMPDIFF(), or other unsupported or non-MySQL functions.
+
 Query: {user_query}
 Answer:
 """
