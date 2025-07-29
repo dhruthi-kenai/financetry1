@@ -166,6 +166,10 @@ Instructions:
 - Do not use triple backticks or markdown — return only raw SQL if applicable.
 - To calculate the number of days between two dates, always use the MySQL function: DATEDIFF(date1, date2)
 - Never use julianday(), TIMESTAMPDIFF(), or other unsupported or non-MySQL functions.
+- If the user asks for metrics like average payment duration or delay, use `DATEDIFF(payment_date, invoice_date)` and compute average via `AVG()`.
+- Use the `payments` table for `payment_date`, and join with `ar_invoices` or `ap_invoices` on `invoice_id`, depending on context.
+- Use `p.direction = 'AR'` for Accounts Receivable and `p.direction = 'AP'` for Accounts Payable.
+
 
 Query: {user_query}
 Answer:
