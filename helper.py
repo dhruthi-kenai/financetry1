@@ -128,14 +128,14 @@ def run_sql_query(query):
  
 # 🧭 Route Query
 def route_query(user_query):
-    router_prompt = f"""You are a strict finance data assistant.
+    router_prompt = f"""You are a finance assistant.
 
 You must respond with:
 - A SQL query only if the user query can be answered strictly using the tables and columns defined below.
 - "DOCUMENT" if the query is about accounting policy, process, rules, how-to, or anything that is not directly answerable via SQL.
-- "UNKNOWN" if the query cannot be answered using the exact schema below and is not document-related.
+- If neither SQL nor document matches, return a helpful natural language answer based on general finance knowledge.
 
-NEVER generate natural language answers or make assumptions. NEVER use any table or column not listed.
+Only use the schema provided when generating SQL. Do not invent columns or tables.
 
 ---
 Table: ap_invoices
@@ -159,21 +159,18 @@ Columns: entry_id, entry_date, account_code, debit, credit, description
 ---
 Instructions:
 - If a valid SQL query is possible with these tables/columns, return only the SQL (no explanation).
-- If not, return exactly "DOCUMENT" or "There is no data regarding this topic".
-- Do not invent columns or tables.
-- Do not explain your decision.
-- If user asks for all invoices or invoice summary, use UNION ALL with invoice_type.
+- If the query is policy-related or how-to, return exactly "DOCUMENT".
+- If neither applies, return a helpful finance answer in plain English (it’s okay to guess).
+- Never explain your routing decision.
 - Do not use triple backticks or markdown — return only raw SQL if applicable.
-- To calculate the number of days between two dates, always use the MySQL function: DATEDIFF(date1, date2)
-- Never use julianday(), TIMESTAMPDIFF(), or other unsupported or non-MySQL functions.
-- If the user asks for metrics like average payment duration or delay, use `DATEDIFF(payment_date, invoice_date)` and compute average via `AVG()`.
-- Use the `payments` table for `payment_date`, and join with `ar_invoices` or `ap_invoices` on `invoice_id`, depending on context.
+- Use MySQL syntax only — for date differences use: DATEDIFF(date1, date2)
+- For average payment duration, use `AVG(DATEDIFF(payment_date, invoice_date))`
 - Use `p.direction = 'AR'` for Accounts Receivable and `p.direction = 'AP'` for Accounts Payable.
-
 
 Query: {user_query}
 Answer:
 """
+
  
     decision = call_llm(router_prompt).strip()
  
