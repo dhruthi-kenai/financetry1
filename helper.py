@@ -159,10 +159,11 @@ Columns: entry_id, entry_date, account_code, debit, credit, description
 ---
 Instructions:
 - If a valid SQL query is possible with these tables/columns, return only the SQL (no explanation).
-- If not, return exactly "DOCUMENT" or "UNKNOWN".
+- If not, return exactly "DOCUMENT" or "There is no data regarding this topic".
 - Do not invent columns or tables.
 - Do not explain your decision.
 - If user asks for all invoices or invoice summary, use UNION ALL with invoice_type.
+- Do not use triple backticks or markdown — return only raw SQL if applicable.
 Query: {user_query}
 Answer:
 """
